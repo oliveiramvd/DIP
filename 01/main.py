@@ -61,17 +61,23 @@ def rotula (img, largura_min, altura_min, n_pixels_min):
     height = img.shape[0]
     width = img.shape[1]
     img_aux = img_auxiliar(img, height, width)
-    label = 0.1
+    label = 1
     componente = {}
     lista_componentes = [{}]
     
+    print('teste1:')
+    print(img_aux)
     # Para cada pixel da imagem...
     for y in range(height):
         for x in range(width):
             # Pixel é um foreground e não foi marcado com label ainda
             if img[y, x] == 1 and img_aux[y, x] == 0:
-                componente = inunda(label, img, img_aux, x, y, componente)
-                label += 0.1
+                inunda(label, img, img_aux, x, y, componente)
+                label += 1
+
+    print('teste2:')
+    print(label)
+    print(img_aux)
     return lista_componentes
 
     '''Rotulagem usando flood fill. Marca os objetos da imagem com os valores
@@ -94,6 +100,9 @@ respectivamente: topo, esquerda, baixo e direita.'''
     # Use a abordagem com flood fill recursivo.
     
 def inunda(label, img, img_aux, x, y, componente):
+    height = img.shape[0]
+    width = img.shape[1]
+
     img_aux[y, x] = label
     componente['label'] = label
     #componente['n_pixels'] = 1
@@ -103,18 +112,19 @@ def inunda(label, img, img_aux, x, y, componente):
     # Acima
     if y-1 >= 0:
         if img[y-1, x] == 1 and img_aux[y-1, x] == 0:
-            img_aux[y-1, x] = label
             inunda(label, img, img_aux, x, y-1, componente)
-
     # Esquerda
-
+    if x-1 >= 0:
+        if img[y, x-1] == 1 and img_aux[y, x-1] == 0:
+            inunda(label, img, img_aux, x, y-1, componente)
     # Baixo
-
+    if y+1 <= height:
+        if img[y+1, x] == 1 and img_aux[y+1, x] == 0:
+            inunda(label, img, img_aux, x, y+1, componente)
     # Direita
-
-    inunda()
-
-    return 0
+    if x+1 <= width:
+        if img[y-1, x] == 1 and img_aux[y-1, x] == 0:
+            inunda(label, img, img_aux, x, y-1, componente)
 
 
 #===============================================================================
@@ -147,7 +157,7 @@ def main ():
 
     lista_componentes = [{'1':0,'2':0}]
     print(lista_componentes)
-    #componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
+    componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
     #n_componentes = len (componentes)
     #print ('Tempo: %f' % (timeit.default_timer () - start_time))
     #print ('%d componentes detectados.' % n_componentes)
