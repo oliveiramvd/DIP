@@ -13,7 +13,7 @@ from numpy.lib.type_check import imag
 
 #===============================================================================
 
-INPUT_IMAGE =  'arroz.bmp'
+INPUT_IMAGE =  'teste2.png'
 
 # TODO: ajuste estes parâmetros!
 NEGATIVO = False
@@ -43,7 +43,7 @@ def binariza (img, threshold):
                 px = pixel[0]
 
             # Dentro do limiar?
-            if px >  threshold:
+            if px >=  threshold:
                 img_out[y, x] = 1
             else:
                 img_out[y, x] = 0
@@ -53,7 +53,7 @@ def binariza (img, threshold):
 
 # Matriz auxiliar informando o label para cada posição f(x, y)
 def img_auxiliar(img, height, width):
-    return np.zeros((height, width), dtype=float)
+    return np.full((height, width), -1)
 
 #-------------------------------------------------------------------------------
 
@@ -61,7 +61,7 @@ def rotula (img, largura_min, altura_min, n_pixels_min):
     height = img.shape[0]
     width = img.shape[1]
     img_aux = img_auxiliar(img, height, width)
-    label = 1
+    label = 0
     componente = {}
     lista_componentes = [{}]
     
@@ -71,7 +71,7 @@ def rotula (img, largura_min, altura_min, n_pixels_min):
     for y in range(height):
         for x in range(width):
             # Pixel é um foreground e não foi marcado com label ainda
-            if img[y, x] == 1 and img_aux[y, x] == 0:
+            if img[y, x] == 1 and img_aux[y, x] == -1:
                 inunda(label, img, img_aux, x, y, componente)
                 label += 1
 
@@ -104,27 +104,27 @@ def inunda(label, img, img_aux, x, y, componente):
     width = img.shape[1]
 
     img_aux[y, x] = label
-    componente['label'] = label
+    #componente['label'] = label
     #componente['n_pixels'] = 1
     #componente['coordenadas'] = {'T': 0, 'L':0, 'B':0, 'R':0}
 
     # Vizinhança 4
     # Acima
     if y-1 >= 0:
-        if img[y-1, x] == 1 and img_aux[y-1, x] == 0:
+        if img[y-1, x] == 1 and img_aux[y-1, x] == -1:
             inunda(label, img, img_aux, x, y-1, componente)
     # Esquerda
     if x-1 >= 0:
-        if img[y, x-1] == 1 and img_aux[y, x-1] == 0:
-            inunda(label, img, img_aux, x, y-1, componente)
+        if img[y, x-1] == 1 and img_aux[y, x-1] == -1:
+            inunda(label, img, img_aux, x-1, y, componente)
     # Baixo
-    if y+1 <= height:
-        if img[y+1, x] == 1 and img_aux[y+1, x] == 0:
+    if y+1 < height:
+        if img[y+1, x] == 1 and img_aux[y+1, x] == -1:
             inunda(label, img, img_aux, x, y+1, componente)
     # Direita
-    if x+1 <= width:
-        if img[y-1, x] == 1 and img_aux[y-1, x] == 0:
-            inunda(label, img, img_aux, x, y-1, componente)
+    if x+1 < width:
+        if img[y, x+1] == 1 and img_aux[y, x+1] == -1:
+            inunda(label, img, img_aux, x+1, y, componente)
 
 
 #===============================================================================
@@ -133,7 +133,6 @@ def main ():
 
     # Abre a imagem em escala de cinza.
     img = cv2.imread (INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
-    cv2.imshow('teste',img)
     if img is None:
         print ('Erro abrindo a imagem.\n')
         sys.exit ()
@@ -150,7 +149,7 @@ def main ():
     if NEGATIVO:
         img = 1 - img
     img = binariza (img, THRESHOLD)
-    cv2.imshow ('01 - binarizada', img)
+    #cv2.imshow ('01 - binarizada', img)
     cv2.imwrite ('01 - binarizada.png', img*255)
 
     start_time = timeit.default_timer ()
