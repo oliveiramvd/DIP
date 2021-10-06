@@ -62,8 +62,8 @@ def rotula (img, largura_min, altura_min, n_pixels_min):
     width = img.shape[1]
     img_aux = img_auxiliar(img, height, width)
     label = 0
-    componente = {}
     lista_componentes = [{}]
+    componente = {}
     
     print('teste1:')
     print(img_aux)
@@ -72,7 +72,12 @@ def rotula (img, largura_min, altura_min, n_pixels_min):
         for x in range(width):
             # Pixel é um foreground e não foi marcado com label ainda
             if img[y, x] == 1 and img_aux[y, x] == -1:
-                inunda(label, img, img_aux, x, y, componente)
+                componente = inunda(label, img, img_aux, x, y)
+
+                # Valida se componente possui altura, largura e qtd mínima de pixels
+                if componente['n_pixels'] >= n_pixels_min:
+                    lista_componentes.append(componente)
+
                 label += 1
 
     print('teste2:')
@@ -99,13 +104,14 @@ respectivamente: topo, esquerda, baixo e direita.'''
     # TODO: escreva esta função.
     # Use a abordagem com flood fill recursivo.
     
-def inunda(label, img, img_aux, x, y, componente):
+def inunda(label, img, img_aux, x, y):
     height = img.shape[0]
     width = img.shape[1]
 
     img_aux[y, x] = label
-    #componente['label'] = label
-    #componente['n_pixels'] = 1
+    componente = {}
+    componente['label'] = label
+    componente['n_pixels'] = 1
     #componente['coordenadas'] = {'T': 0, 'L':0, 'B':0, 'R':0}
 
     # Vizinhança 4
