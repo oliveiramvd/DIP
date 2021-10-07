@@ -20,7 +20,7 @@ NEGATIVO = False
 THRESHOLD = 0.8
 ALTURA_MIN = 1
 LARGURA_MIN = 1
-N_PIXELS_MIN = 10
+N_PIXELS_MIN = 5
 
 #===============================================================================
 
@@ -57,31 +57,41 @@ def img_auxiliar(img, height, width):
 
 #-------------------------------------------------------------------------------
 
+# Verifica se é o pixel mais nas extremidades para ser usado para desenhar o retângulo. T sempre será o pixel semente pois a busca na imagem é feita de cima para baixo
+def atualiza_coordenadas(componente, x, y):
+    componente['L'] = x if componente['L'] > x else componente['L']
+    componente['B'] = y if componente['B'] < y else componente['B']
+    componente['R'] = x if componente['R'] < x else componente['R']
+
 def rotula (img, largura_min, altura_min, n_pixels_min):
     height = img.shape[0]
     width = img.shape[1]
     img_aux = img_auxiliar(img, height, width)
     label = 0
-    lista_componentes = [{}]
-    componente = {}
+    lista_componentes = []
     
-    print('teste1:')
-    print(img_aux)
     # Para cada pixel da imagem...
     for y in range(height):
         for x in range(width):
             # Pixel é um foreground e não foi marcado com label ainda
             if img[y, x] == 1 and img_aux[y, x] == -1:
-                componente = inunda(label, img, img_aux, x, y)
+                componente = {}
+                componente['label'] = label
+                componente['n_pixels'] = 1
+                # Inicialmente o tamanho total do componente é do pixel semente
+                componente['T'], componente['B'] = y, y    
+                componente['L'], componente['R'] = x, x
+                inunda(label, img, img_aux, x, y, componente)
 
                 # Valida se componente possui altura, largura e qtd mínima de pixels
                 if componente['n_pixels'] >= n_pixels_min:
                     lista_componentes.append(componente)
+                    label += 1
 
-                label += 1
+                
 
     print('teste2:')
-    print(label)
+    print(lista_componentes)
     print(img_aux)
     return lista_componentes
 
@@ -104,32 +114,35 @@ respectivamente: topo, esquerda, baixo e direita.'''
     # TODO: escreva esta função.
     # Use a abordagem com flood fill recursivo.
     
-def inunda(label, img, img_aux, x, y):
+def inunda(label, img, img_aux, x, y, componente):
     height = img.shape[0]
     width = img.shape[1]
-
     img_aux[y, x] = label
-    componente = {}
-    componente['label'] = label
-    componente['n_pixels'] = 1
-    #componente['coordenadas'] = {'T': 0, 'L':0, 'B':0, 'R':0}
 
     # Vizinhança 4
     # Acima
     if y-1 >= 0:
         if img[y-1, x] == 1 and img_aux[y-1, x] == -1:
+            componente['n_pixels'] += 1
+            atualiza_coordenadas(componente, y-1, x)
             inunda(label, img, img_aux, x, y-1, componente)
     # Esquerda
     if x-1 >= 0:
         if img[y, x-1] == 1 and img_aux[y, x-1] == -1:
+            componente['n_pixels'] += 1
+            atualiza_coordenadas(componente, y, x-1)
             inunda(label, img, img_aux, x-1, y, componente)
     # Baixo
     if y+1 < height:
         if img[y+1, x] == 1 and img_aux[y+1, x] == -1:
+            componente['n_pixels'] += 1
+            atualiza_coordenadas(componente, y+1, x)
             inunda(label, img, img_aux, x, y+1, componente)
     # Direita
     if x+1 < width:
         if img[y, x+1] == 1 and img_aux[y, x+1] == -1:
+            componente['n_pixels'] += 1
+            atualiza_coordenadas(componente, y, x+1)
             inunda(label, img, img_aux, x+1, y, componente)
 
 
@@ -159,9 +172,6 @@ def main ():
     cv2.imwrite ('01 - binarizada.png', img*255)
 
     start_time = timeit.default_timer ()
-
-    lista_componentes = [{'1':0,'2':0}]
-    print(lista_componentes)
     componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
     #n_componentes = len (componentes)
     #print ('Tempo: %f' % (timeit.default_timer () - start_time))
