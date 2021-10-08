@@ -10,10 +10,9 @@ import timeit
 import numpy as np
 import cv2
 from numpy.lib.type_check import imag
-
 #===============================================================================
 
-INPUT_IMAGE =  'teste2.png'
+INPUT_IMAGE =  'arroz.bmp'
 
 # TODO: ajuste estes parâmetros!
 NEGATIVO = False
@@ -58,10 +57,13 @@ def img_auxiliar(img, height, width):
 #-------------------------------------------------------------------------------
 
 # Verifica se é o pixel mais nas extremidades para ser usado para desenhar o retângulo. T sempre será o pixel semente pois a busca na imagem é feita de cima para baixo
-def atualiza_coordenadas(componente, x, y):
-    componente['L'] = x if componente['L'] > x else componente['L']
-    componente['B'] = y if componente['B'] < y else componente['B']
-    componente['R'] = x if componente['R'] < x else componente['R']
+def atualiza_coordenadas(componente, y, x):
+    if componente['L'] > x:
+        componente['L'] = x
+    if componente['B'] < y:
+        componente['B'] = y
+    if componente['R'] < x:
+        componente['R'] = x
 
 def rotula (img, largura_min, altura_min, n_pixels_min):
     height = img.shape[0]
@@ -84,32 +86,13 @@ def rotula (img, largura_min, altura_min, n_pixels_min):
                 inunda(label, img, img_aux, x, y, componente)
 
                 # Valida se componente possui altura, largura e qtd mínima de pixels
-                if componente['n_pixels'] >= n_pixels_min:
+                if componente['n_pixels'] >= n_pixels_min and componente['B'] - componente['T'] >= altura_min and componente['R'] - componente['L'] >= largura_min:
                     lista_componentes.append(componente)
                     label += 1
 
                 
 
-    print('teste2:')
-    print(lista_componentes)
-    print(img_aux)
     return lista_componentes
-
-    '''Rotulagem usando flood fill. Marca os objetos da imagem com os valores
-[0.1,0.2,etc].
-
-Parâmetros: img: imagem de entrada E saída.
-            largura_min: descarta componentes com largura menor que esta.
-            altura_min: descarta componentes com altura menor que esta.
-            n_pixels_min: descarta componentes com menos pixels que isso.
-
-Valor de retorno: uma lista, onde cada item é um vetor associativo (dictionary)
-com os seguintes campos:
-
-'label': rótulo do componente.
-'n_pixels': número de pixels do componente.
-'T', 'L', 'B', 'R': coordenadas do retângulo envolvente de um componente conexo,
-respectivamente: topo, esquerda, baixo e direita.'''
 
     # TODO: escreva esta função.
     # Use a abordagem com flood fill recursivo.
@@ -168,21 +151,21 @@ def main ():
     if NEGATIVO:
         img = 1 - img
     img = binariza (img, THRESHOLD)
-    #cv2.imshow ('01 - binarizada', img)
+    cv2.imshow ('01 - binarizada', img)
     cv2.imwrite ('01 - binarizada.png', img*255)
 
     start_time = timeit.default_timer ()
     componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
-    #n_componentes = len (componentes)
-    #print ('Tempo: %f' % (timeit.default_timer () - start_time))
-    #print ('%d componentes detectados.' % n_componentes)
+    n_componentes = len (componentes)
+    print ('Tempo: %f' % (timeit.default_timer () - start_time))
+    print ('%d componentes detectados.' % n_componentes)
 
     # Mostra os objetos encontrados.
-    #for c in componentes:
-    #    cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
+    for c in componentes:
+        cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
 
-    #cv2.imshow ('02 - out', img_out)
-    #cv2.imwrite ('02 - out.png', img_out*255)
+    cv2.imshow ('02 - out', img_out)
+    cv2.imwrite ('02 - out.png', img_out*255)
     cv2.waitKey ()
     cv2.destroyAllWindows ()
 
