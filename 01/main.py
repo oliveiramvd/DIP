@@ -12,11 +12,11 @@ import cv2
 from numpy.lib.type_check import imag
 #===============================================================================
 
-INPUT_IMAGE =  'arroz.bmp'
+INPUT_IMAGE =  'documento-3mp.bmp'
 
 # TODO: ajuste estes parâmetros!
-NEGATIVO = False
-THRESHOLD = 0.8
+NEGATIVO = True
+THRESHOLD = 0.3
 ALTURA_MIN = 1
 LARGURA_MIN = 1
 N_PIXELS_MIN = 5
@@ -24,10 +24,6 @@ N_PIXELS_MIN = 5
 #===============================================================================
 
 def binariza (img, threshold):
-    #binarizar cada canal independentemente
-
-    # Dica/desafio: usando a função np.where, dá para fazer a binarização muito
-    # rapidamente, e com apenas uma linha de código!
     img_out = img
     height, width, channel = img_out.shape
 
@@ -55,6 +51,19 @@ def img_auxiliar(img, height, width):
     return np.full((height, width), -1)
 
 #-------------------------------------------------------------------------------
+def verifica_altura_largura(componente, altura_min, largura_min):
+    ok_altura = False
+    ok_largura = False
+
+    if componente['B'] - componente['T'] >= altura_min or componente['B'] - componente['T'] == 0:
+        ok_altura = True
+    if componente['R'] - componente['L'] >= largura_min or componente['R'] - componente['L'] == 0:
+        ok_largura = True
+    
+    if ok_altura and ok_largura:
+        return True
+    else:
+        return False
 
 # Verifica se é o pixel mais nas extremidades para ser usado para desenhar o retângulo. T sempre será o pixel semente pois a busca na imagem é feita de cima para baixo
 def atualiza_coordenadas(componente, y, x):
@@ -86,16 +95,11 @@ def rotula (img, largura_min, altura_min, n_pixels_min):
                 inunda(label, img, img_aux, x, y, componente)
 
                 # Valida se componente possui altura, largura e qtd mínima de pixels
-                if componente['n_pixels'] >= n_pixels_min and componente['B'] - componente['T'] >= altura_min and componente['R'] - componente['L'] >= largura_min:
+                if componente['n_pixels'] >= n_pixels_min and verifica_altura_largura(componente, altura_min, largura_min):
                     lista_componentes.append(componente)
                     label += 1
 
-                
-
     return lista_componentes
-
-    # TODO: escreva esta função.
-    # Use a abordagem com flood fill recursivo.
     
 def inunda(label, img, img_aux, x, y, componente):
     height = img.shape[0]
