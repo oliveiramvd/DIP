@@ -4,12 +4,12 @@ import timeit
 import cv2
 import numpy as np
 
-INPUT_IMAGE =  'img/example.png'
+INPUT_IMAGE =  'img/02.jpg'
 WINDOW_HEIGHT = 3
 WINDOW_WIDTH = 3
 
 
-# Applies a Mean Filter in an image using a simple algorithm
+# Applies a mean Filter in an image using a simple algorithm
 def mean_filter(img_in, w_height, w_width):
     height = img_in.shape[0]
     width = img_in.shape[1]
@@ -18,52 +18,44 @@ def mean_filter(img_in, w_height, w_width):
     # Goes through every pixel within the image
     for y in range(height):
         for x in range(width):
-            # Verify if window don't exceed the image size
-            if y - math.floor(w_height/2) >= 0 and x - math.floor(w_width/2) >= 0 and y + math.floor(w_height/2) < height and x + math.floor(w_width/2) < width:
-                sum = np.zeros(3)
-                # Slide through the image applying a mean filter
-                for j in range(y - math.floor(w_height/2), y + math.floor(w_height/2)+1):
-                    for i in range(x - math.floor(w_width/2), x + math.floor(w_width/2)+1):
+            sum = np.zeros(3)
+            # Slides through the image applying a arithmetic mean. Also, verifies if window don't exceed the image size (if so, sums only the pixels which doesn't exceed the image size for that window)
+            for j in range(y - math.floor(w_height/2), y + math.floor(w_height/2)+1):
+                for i in range(x - math.floor(w_width/2), x + math.floor(w_width/2)+1):
+                    if i >= 0 and i < width and j >= 0 and j < height:
                         sum += img_in[j, i]
                 
-                img_out[y, x] = sum/(w_height * w_width)
+            img_out[y, x] = sum/(w_height * w_width)
     
     return img_out
 
 
-# Applies a Mean Filter using a somewhat enhanced algorithm than the previous one (first, it blurs the image horizontally and then vertically)
+# Applies a mean Filter using a somewhat enhanced algorithm than the previous one (first, it blurs the image horizontally and then vertically)
 def mean_filter_2pass(img_in, w_height, w_width):
     height = img_in.shape[0]
     width = img_in.shape[1]
-    img_out = img_in.copy()
+    img_buffer = img_in.copy()
 
     # First pass (Horizontally)
     for y in range(height):
         for x in range(width):
             sum = np.zeros(3)
-            # Slides through the image applying a mean. Also, verifies if window don't exceed the image size
+            # Slides through the image applying a arithmetic mean. Also, verifies if window don't exceed the image size (if so, sums only the pixels which doesn't exceed the image size for that window)
             for i in range(x - math.floor(w_width/2), x + math.floor(w_width/2)+1):
-                if i < 0:
-                    sum+= img_in[y, 0]
-                if i > width-1:
-                    sum+= img_in[y, width-1]
-                else:
+                if i >= 0 and i < width:
                     sum+= img_in[y, i]
                 
-                img_out[y, x] = sum/w_width
+                img_buffer[y, x] = sum/w_width
+    
+    img_out = img_buffer.copy()
 
     # Second pass (Vertically)
     for x in range(width):
         for y in range(height):
             sum = np.zeros(3)
-            # Slides through the image applying a mean. Also, verifies if window don't exceed the image size
             for j in range(y - math.floor(w_height/2), y + math.floor(w_height/2)+1):
-                if j <  0:
-                    sum+= img_out[0, x]
-                if j > height-1:
-                    sum+= img_out[height-1, x]
-                else:
-                    sum += img_out[j, x]
+                if j >= 0 and j < height:
+                    sum += img_buffer[j, x]
                 
                 img_out[y, x] = sum/w_height
     
@@ -92,7 +84,7 @@ def create_integral_image(img_in):
 
     return int_img
 
-# Applies a Mean Filter using an integral image
+# Applies a mean Filter using an integral image
 def mean_filter_integral(img_in, int_img, w_height, w_width):
     height = img_in.shape[0]
     width = img_in.shape[1]
@@ -120,7 +112,7 @@ def main ():
     print ('Elapsed time (Mean Filter 1): %f' % (timeit.default_timer () - start_time))
     
     start_time = timeit.default_timer ()
-    #img_out2 = mean_filter_2pass(img, WINDOW_HEIGHT, WINDOW_WIDTH)
+    img_out2 = mean_filter_2pass(img, WINDOW_HEIGHT, WINDOW_WIDTH)
     print ('Elapsed time (Mean Filter 2): %f' % (timeit.default_timer () - start_time))
 
     start_time = timeit.default_timer ()
@@ -129,7 +121,7 @@ def main ():
     print ('Elapsed time (Mean Filter 3): %f' % (timeit.default_timer () - start_time))
 
     cv2.imwrite ('img/01 - Mean Filter.png', img_out*255)
-    #cv2.imwrite ('img/02 - Mean Filter - Two-pass.png', img_out2*255)
+    cv2.imwrite ('img/02 - Mean Filter - Two-pass.png', img_out2*255)
     cv2.imwrite ('img/03 - Mean Filter - Integral.png', img_out3*255)
 
 
