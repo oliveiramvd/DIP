@@ -4,9 +4,9 @@ import timeit
 import cv2
 import numpy as np
 
-INPUT_IMAGE =  'img/02.jpg'
-WINDOW_HEIGHT = 3
-WINDOW_WIDTH = 3
+INPUT_IMAGE =  'img/ex.jpg'
+WINDOW_HEIGHT = 5
+WINDOW_WIDTH = 5
 
 
 # Applies a mean Filter in an image using a simple algorithm
@@ -92,9 +92,24 @@ def mean_filter_integral(img_in, int_img, w_height, w_width):
 
     for y in range(height):
         for x in range(width):
-            if y-1 - math.floor(w_height/2) >= 0 and x-1 - math.floor(w_width/2) >= 0 and y+1 + math.floor(w_height/2) < height and x+1 + math.floor(w_width/2) < width:
+                # Defines 4 variables which will be used to pick 4 points within the integral image
+                p1 = [y-1 - math.floor(w_height/2), x + math.floor(w_width/2)]
+                p2 = [y + math.floor(w_height/2), x + math.floor(w_width/2)]
+                p3 = [y + math.floor(w_height/2), x-1 - math.floor(w_width/2)]
+                p4 = [y-1 - math.floor(w_height/2), x-1 - math.floor(w_width/2)]
 
-                img_out[y, x] = (int_img[y + math.floor(w_height/2), x + math.floor(w_width/2)] - int_img[y-1 - math.floor(w_height/2), x + math.floor(w_width/2)] - int_img[y + math.floor(w_height/2), x-1 - math.floor(w_width/2)] + int_img[y-1 - math.floor(w_height/2), x-1 - math.floor(w_width/2)]) / (w_width * w_height)
+                # Handles image margin
+                if p1[0] < 0: # point 1 and 4  < image min-height
+                    p1[0], p4[0] = 0, 0
+                if p3[1] < 0: # point 3 and 4 < image min-width
+                    p3[1], p4[1] = 0, 0
+                if p2[0] > height-1: # point 2 and 3 > image max-height
+                    p2[0], p3[0] = height-1, height-1
+                if p2[1] > width-1: # point 1 and 2 > image max-width
+                    p2[1],p1[1] = width-1, width-1
+                
+                img_out[y, x] = (int_img[p2[0],p2[1]] - int_img[p1[0],p1[1]] - int_img[p3[0],p3[1]] + int_img[p4[0],p4[1]]) / (w_width * w_height)
+
 
     return img_out
 
