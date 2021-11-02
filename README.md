@@ -4,3 +4,4 @@ Assignments for Digital Image Processing course taught by prof. Bogdan Nassu at 
 
 1. Segmentation and image labelling
 2. Image smoothing (using 3 different algorithms of Box blur)
+3. Bloom effect
