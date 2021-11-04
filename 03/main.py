@@ -2,9 +2,11 @@ import sys
 import cv2
 import numpy as np
 
-INPUT_IMAGE =  'img/Wind_Waker_GC.bmp'
-CONTRAST = 0.2
+INPUT_IMAGE =  'img/GT2.bmp'
+CONTRAST = 0.25
 BRIGHTNESS = 0
+LOWER_LUMINANCE = 128
+UPPER_LUMINANCE = 255
 
 def main ():
 
@@ -14,10 +16,8 @@ def main ():
         sys.exit ()
 
     img_hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
-
-    lower_t = np.array([0,128,0])
-    upper_t = np.array([255,255,255])
-
+    lower_t = np.array([0,LOWER_LUMINANCE,0])
+    upper_t = np.array([255,UPPER_LUMINANCE,255])
     mask = cv2.inRange(img_hls, lower_t, upper_t)
     res = cv2.bitwise_and(img,img, mask= mask)
 
