@@ -1,6 +1,5 @@
 import sys
 import math
-import timeit
 import numpy as np
 import cv2
 
@@ -8,8 +7,7 @@ from matplotlib import pyplot as plt
 from classes import Pixel
 from classes import Blob
 
-
-INPUT_IMAGE = "img/82.bmp"
+INPUT_IMAGE = "img/60.bmp"
 MIN_PIXELS_N = 15               # Minimum blob pixel quantity
 FOREGROUND = 255                # Color to fill in Foreground (0 - 255)
 BACKGROUND = 0                  # Color to fill in Background (0 - 255)
@@ -21,6 +19,25 @@ def calculateDistance(img, seed_x, seed_y, child_x, child_y):
     child_pixel = img[child_y][child_x]
 
     return abs(int(seed_pixel) - int(child_pixel))
+
+def find_min_max_pixel_position(blob, pixel):
+    
+        # Mininum X and Y
+        if pixel.x < blob.min_x:
+            blob.min_x = pixel.x
+
+        if pixel.y < blob.min_y:
+            blob.min_y = pixel.y
+
+        # Maximum X and Y
+        if pixel.x > blob.max_x:
+            blob.max_x = pixel.x
+
+        if pixel.y > blob.max_y:
+            blob.max_y = pixel.y
+        
+        return blob
+
 
 # Creates an auxiliar 2Dimensional array which will be used for pixel labelling
 def createsAuxMatrix(width, height):
@@ -38,13 +55,18 @@ def createsAuxMatrix(width, height):
     return cols
 
 # Detects blobs on a given image
-def blobDetection(img, min_pixels_n, height, width):
+def blobDetection(img, min_pixels_n):
+    height, width = img.shape[0], img.shape[1]
     stack = []
     list_of_blobs = []
     pixels = createsAuxMatrix(width, height)
     label = 0
     pixels_per_blob = 0
     blob_px_qty = []
+
+    # store most extreme pixels from the image in axis x and y
+    global_min_max_pos = {'min': {'x': width-1, 'y': height-1 }, 
+                        'max': {'x': 0, 'y': 0}}
 
     for y in range(height):
         for x in range(width):
@@ -55,7 +77,7 @@ def blobDetection(img, min_pixels_n, height, width):
                 pixels[y][x].label = label
 
                 stack.append(pixels[y][x]) # Seed pixel in put inside a stack
-                b = Blob()
+                b = Blob(width, height)
 
                 # While stack is not empty, verify neighbors from pixel which was never visited before
                 while len(stack) != 0:
@@ -64,6 +86,8 @@ def blobDetection(img, min_pixels_n, height, width):
                     # Add it to blob's pixel list
                     b.pixels_list.append(p)
                     pixels_per_blob += 1
+                    # checks if this new pixel is a new min/max position in that blob 
+                    b = find_min_max_pixel_position(b, p)
 
                     # Neighboard 4
                     # Top
@@ -104,6 +128,16 @@ def blobDetection(img, min_pixels_n, height, width):
                 if b.pixels_qty >= min_pixels_n:
                     list_of_blobs.append(b)
                     blob_px_qty.append(pixels_per_blob)
+
+                    # checks if within this blob, there is a new min/max global position
+                    if global_min_max_pos['min']['x'] > b.min_x:
+                        global_min_max_pos['min']['x'] = b.min_x
+                    if global_min_max_pos['min']['y'] > b.min_y:
+                        global_min_max_pos['min']['y'] = b.min_y
+                    if global_min_max_pos['max']['x'] < b.max_x:
+                        global_min_max_pos['max']['x'] = b.max_x
+                    if global_min_max_pos['max']['y'] < b.max_y:
+                        global_min_max_pos['max']['y'] = b.max_y
                 else:
                     label -= 1 #returns label
 
@@ -111,21 +145,58 @@ def blobDetection(img, min_pixels_n, height, width):
                 pixels_per_blob = 0
                 label += 1
 
-    return blob_px_qty, list_of_blobs
+
+    return global_min_max_pos, blob_px_qty, list_of_blobs
 
 def update_blob_list(blob_qty_px, blob_list):
     mean = np.mean(blob_qty_px)
     stdev = np.std(blob_qty_px)
 
-    for blob in blob_list:
-        std_perc = math.sqrt(pow(blob.pixels_qty - mean, 2))/stdev
-        if std_perc >= 2:
-            print("std: ", stdev, " mean: ", mean)
-            print(blob, 'precisa ser dividido.', blob.pixels_qty)
+    print(mean, stdev)
+
+    # Percorre toda lista de blobs
+    for k in range(len(blob_list)):
+        # Calcula Z-Score desse blob
+        zscore = math.sqrt(pow(blob_list[k].pixels_qty - mean, 2))/stdev
+        if zscore > 2.5:
+            print("cheguei aqui")
+            # Quantity of times which this blob needs to be divided (cada vez que passa do zscore 3, é um novo blob)
+            qty_divisions = math.ceil(3/zscore)
+
+            for j in range(qty_divisions):
+                new_blob_px_qty = math.floor(blob_list[k].pixels_qty/qty_divisions+1)
+                # Pega valor de label, aumenta +1
+                # Pega aleatoriamente metade dos pixels e cria novo blob pra eles
+                blob_list[k].pixels_qty = new_blob_px_qty
+                new_blob = Blob()
+                new_blob.pixels_qty = new_blob_px_qty
+                blob_list.append(new_blob)
 
     return blob_list
             
-        
+def image_resize(img, global_min_max_pos):
+    original_height = img.shape[0]
+    original_width = img.shape[1]
+
+    img_crop = img[global_min_max_pos['min']['y']:global_min_max_pos['max']['y'], global_min_max_pos['min']['x']: global_min_max_pos['max']['x']]
+    diff_height = (original_height - img_crop.shape[0])/original_height
+    diff_width = (original_width - img_crop.shape[1])/original_width
+
+    # Verifies if width or height from the cropped image will be used to adjust the image to its new proportion
+    if diff_width <= diff_height:
+        new_proportion = diff_width
+    else:
+        new_proportion = diff_height
+
+    print(diff_width, diff_height, new_proportion, img_crop.shape[1], img_crop.shape[0])
+
+    img_resize = cv2.resize(img_crop, (int(img_crop.shape[1] + original_width * new_proportion), int(img_crop.shape[0] + original_height * new_proportion)), interpolation=cv2.INTER_LINEAR)
+
+    return img_resize
+
+
+
+
 def main ():
     img = cv2.imread(INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
     
@@ -141,16 +212,20 @@ def main ():
 
     # Change image type
     #img_final = img_final.astype (np.float32) / 255
-    
-    # Image segmentation
-    blob_px_qty, list_of_blobs = blobDetection (img_final, MIN_PIXELS_N, img_final.shape[0], img_final.shape[1])
-    print ('%d componentes detectados.' % len(list_of_blobs))
-    
-    # Detects if a blob is 
-    list_of_blobs = update_blob_list(blob_px_qty, list_of_blobs)
 
-    cv2.imshow('02 - out', img_final)
-    cv2.imwrite('02 - out.png', img_final*255)
+    # Image segmentation
+    global_min_max_pos, blob_px_qty, list_of_blobs = blobDetection (img_final, MIN_PIXELS_N)
+
+    # Crop region of interest and resize it within the image (it will be used to adjust all images to have the same ratio)
+    img_resize = image_resize(img_final.copy(), global_min_max_pos)
+
+    print ('%d componentes detectados. (1)' % len(list_of_blobs))
+    #list_of_blobs = update_blob_list(blob_px_qty, list_of_blobs)
+    #print ('%d componentes detectados. (2)' % len(list_of_blobs))
+
+    cv2.imshow('01 - out', img_final)
+    cv2.imshow('02 - out', img_resize)
+    #cv2.imwrite('02 - out.png', img_final*255)
     cv2.waitKey()
     cv2.destroyAllWindows()
 
